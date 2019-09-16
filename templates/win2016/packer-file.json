@@ -1,0 +1,78 @@
+{
+    "_comment": "Build with `packer build <<MACHINE_NAME>>.json`",
+    "_comment" : "<<CORP_COMMAND>>",
+    "builders": [
+        {
+            "type": "qemu",
+            "disk_size": "{{ user `disk_size` }}",
+            "floppy_files": "{{ user `floppy_files_list` }}",
+            "headless": "{{ user `headless` }}",
+            "http_directory": "http",
+            "iso_checksum": "{{ user `iso_checksum` }}",
+            "iso_checksum_type": "{{ user `iso_checksum_type` }}",
+            "iso_urls": [
+                "{{ user `local_iso_url` }}"
+            ],
+            "output_directory": "output-{{ user `vm_name` }}",
+            "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
+            "communicator": "winrm",
+            "winrm_username": "vagrant",
+            "winrm_password": "vagrant",
+            "winrm_timeout": "10000s",
+            "boot_wait": "2s",
+            "vm_name": "{{ user `vm_name` }}",
+            "qemuargs": [
+                [
+                    "-m",
+                    "{{ user `memory` }}"
+                ],
+                [
+                    "-smp",
+                    "cpus={{ user `cpus`}}"
+                ]
+            ]
+        }
+    ],
+    "post-processors": [
+        {
+            "keep_input_artifact": true,
+            "output": "box/{{.Provider}}/{{user `vm_name`}}-{{user `version`}}.box",
+            "type": "vagrant",
+            "vagrantfile_template": "{{ user `vagrantfile_template` }}"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "windows-shell",
+            "scripts": [
+                "scripts/<<MACHINE_NAME>>/unlimited-password-expiration.bat",
+                "scripts/<<MACHINE_NAME>>/enable-rdp.bat",
+                "scripts/<<MACHINE_NAME>>/uac-disable.bat",
+                "scripts/<<MACHINE_NAME>>/disablewinupdate.bat",
+                "scripts/<<MACHINE_NAME>>/disable-hibernate.bat",
+                "scripts/<<MACHINE_NAME>>/firewall-open-ping.bat",
+                "scripts/<<MACHINE_NAME>>/firewall-open-rdp.bat"
+            ]
+        },
+        {
+            "type": "windows-shell",
+            "inline": [
+                "net user vagrant {{ user `password`}}"
+            ]
+        }
+    ],
+    "variables": {
+        "disk_size": "65536",
+        "cpus": "2",
+        "memory": "4048M",
+        "headless": "false",
+        "iso_checksum_type": "md5",
+        "iso_checksum": "<<ISO_CHECKSUM>>",
+        "local_iso_url": "file://<<ISO_PATH>>",
+        "preseed": "<<MACHINE_NAME>>/*",
+        "vagrantfile_template": "vagrant-files/vagrant-<<MACHINE_NAME>>.template",
+        "version": "0",
+        "vm_name": "<<MACHINE_NAME>>",
+        "floppy_files_list": "<<VIRTIO_PATH>>/viostor/2k16/amd64/*,<<VIRTIO_PATH>>/NetKVM/2k16/amd64/*,answer/<<MACHINE_NAME>>/*,scripts/<<MACHINE_NAME>>/enable-winrm.ps1,scripts/<<MACHINE_NAME>>/disable-winrm.ps1,scripts/<<MACHINE_NAME>>/fixnetwork.ps1"
+    }
+}

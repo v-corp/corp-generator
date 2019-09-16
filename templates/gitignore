@@ -1,0 +1,5 @@
+# Gitignore template
+# All output folders for packer
+output-*
+# Packer cache, inside there are ISOs
+packer_cache
