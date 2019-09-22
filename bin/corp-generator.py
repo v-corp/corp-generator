@@ -12,6 +12,7 @@ import time
 import re
 import wget
 import hashlib
+from sys import platform
 
 currentDir = os.getcwd()
 corpDir = os.path.abspath(os.path.join(
@@ -20,19 +21,20 @@ corpDir = os.path.abspath(os.path.join(
 print('Current directory: ' + currentDir)
 print('Cache directory: ' + corpDir)
 def check_if_admin():
-    checkAdmin = """
-    """
-    process = subprocess.Popen(
-        ["powershell.exe", "(New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"], stdout=subprocess.PIPE)
-    output, error = process.communicate()
-    p_status = process.wait()
-    process.terminate()
-    if 'True' in str(output):
+    if platform == 'win32':
+        process = subprocess.Popen(
+            ["powershell.exe", "(New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"], stdout=subprocess.PIPE)
+        output, error = process.communicate()
+        p_status = process.wait()
+        process.terminate()
+        if 'True' in str(output):
+            return True
+        try:
+            return 'True' in str(output.decode('iso-8859-1'))
+        except:
+            return 'True' in str(output)
+    elif platform == "linux" or platform == "linux2":
         return True
-    try:
-        return 'True' in str(output.decode('iso-8859-1'))
-    except:
-        return 'True' in str(output)
 
 
 def extract_install_file():
@@ -41,7 +43,6 @@ def extract_install_file():
         return 'wim'
     zip7Command = "7z x " + args.iso_path + " -o" + corpDir + \
         "\\cache\\" +args.iso_md5 + " sources\\install.wim -r"
-    print(zip7Command)
     process = subprocess.Popen(zip7Command.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
     p_status = process.wait()
@@ -66,10 +67,13 @@ def extract_install_file():
 
 
 def get_windows_list(content):
-    pattrn = 'Index : ([0-9]+)\s+Name : (.*)'
+    pattrn = 'Index\s*:\s*([0-9]+)\s*Name\s*:\s*(.*)'
     pattern = re.compile(pattrn, re.MULTILINE)
     try:
-        return re.findall(pattern, str(content.decode('iso-8859-1')))
+        if platform == 'win32':
+            return re.findall(pattern, str(content.decode('iso-8859-1')))
+        else:
+            return re.findall(pattern, content.decode(sys.stdin.encoding))
     except:
         return re.findall(pattern, str(content))
 
@@ -87,6 +91,7 @@ def get_win_type(win_image):
         return 'win7'
     print('Cannot identify Windows OS version: ' + win_image)
     exit()
+
 
 
 def md5(fname):
@@ -172,13 +177,38 @@ if not args.win_type:
         exit()
     # Obtain valid types
     # Alternative: http://www.webupd8.org/2013/06/wimlib-imagex-dism-alternative-to.html
-    installName = extract_install_file()
-    dsimCommand = "dism.exe /get-wiminfo /wimfile:" + os.path.join(corpDir, 'cache', args.iso_md5,'sources','install.' + installName)
-    print(dsimCommand)
-    process = subprocess.Popen(dsimCommand.split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
-    p_status = process.wait()
-    process.terminate()
+    
+    if platform == 'win32':
+        # TODO: Mount image and extract with DSIM
+        installName = extract_install_file()
+        dsimCommand = "dism.exe /get-wiminfo /wimfile:" + os.path.join(corpDir, 'cache', args.iso_md5,'sources','install.' + installName)
+        print(dsimCommand)
+        process = subprocess.Popen(dsimCommand.split(), stdout=subprocess.PIPE)
+        output, error = process.communicate()
+        p_status = process.wait()
+        process.terminate()
+    elif platform == "linux" or platform == "linux2":
+        # First mount image
+        isoMountPath = '/mnt/' + args.iso_md5
+        if not os.path.isdir(isoMountPath):
+            os.makedirs(isoMountPath)
+        mountCommand = 'mount -o loop ' + args.iso_path + ' ' + isoMountPath
+        process = subprocess.Popen(mountCommand.split(), stdout=subprocess.PIPE)
+        output, error = process.communicate()
+        p_status = process.wait()
+        process.terminate()
+        # Process image wsim
+        wimIMageCommand = 'wimlib-imagex info ' + isoMountPath +'/sources/install.wim'
+        process = subprocess.Popen(wimIMageCommand.split(), stdout=subprocess.PIPE)
+        output, error = process.communicate()
+        p_status = process.wait()
+        process.terminate()
+        # Unmount image
+        unmountCommand = 'sudo umount ' + isoMountPath
+        process = subprocess.Popen(unmountCommand.split(), stdout=subprocess.PIPE)
+        out, err = process.communicate()
+        p_status = process.wait()
+        process.terminate()
     windowsList = get_windows_list(output)
     print('Select a Windows Image:')
     selectedImg = ''
@@ -189,6 +219,7 @@ if not args.win_type:
     print('WIN_IMAGE=' + windowsList[selectedImg - 1][1])
     args.win_image = selectedImg
     args.win_type = get_win_type( windowsList[selectedImg - 1][1])
+
 
 # Select image using index or name
 try:
@@ -221,8 +252,9 @@ if args.virtio != 'NONE':
         if not os.path.isdir(os.path.dirname(virtio_cache_location)):
             os.makedirs(os.path.dirname(virtio_cache_location))
         wget.download('https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-{virtio_version}-{virtio_subversion}/virtio-win-{virtio_version}.iso'.format(virtio_version=virtio_version, virtio_subversion=virtio_subversion), virtio_cache_location)
-        os.makedirs(os.path.dirname(os.path.join(corpDir, 'virtio',"virtio-win-" + str(virtio_version) + '-'+ str(virtio_subversion))))
-        virtio7Zip = "7z x " + virtio_cache_location + " -o" + corpDir + "\\cache\\virtio\\virtio-win-" + str(virtio_version) + '-'+ str(virtio_subversion)
+        if not os.path.isdir(os.path.dirname(os.path.join(corpDir, 'virtio',"virtio-win-" + str(virtio_version) + '-'+ str(virtio_subversion)))):
+            os.makedirs(os.path.join(corpDir, 'virtio',"virtio-win-" + str(virtio_version) + '-'+ str(virtio_subversion)))
+        virtio7Zip = "7z x " + virtio_cache_location + " -o" + corpDir + "/cache/virtio/virtio-win-" + str(virtio_version) + '-'+ str(virtio_subversion)
         args.virtio_path = os.path.join(corpDir, 'cache','virtio',"virtio-win-" + str(virtio_version) + '-'+ str(virtio_subversion)).replace('\\','/')
         process = subprocess.Popen(virtio7Zip.split(), stdout=subprocess.PIPE)
         output, error = process.communicate()
