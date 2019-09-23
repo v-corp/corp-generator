@@ -7,8 +7,8 @@ Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Select-Object Descripti
 # Discos instalados
 Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, DriveType, FreeSpace, Size, VolumeName | ConvertTo-Json > $hostname'\disk.json'
 # Cuentas de usuario en el equipo, tanto locales como de dominio
-Get-WmiObject -ComputerName $hostname -Class Win32_UserAccount -Filter | Select-Object LocalAccount,AccountType,Name, PSComputerName, Description,SID, Lockout, PasswordChangeable, PasswordExpires, PasswordRequired  | ConvertTo-Json > $hostname'\accounts.json'
+Get-WmiObject -ComputerName $hostname -Class Win32_UserAccount | Select-Object LocalAccount,AccountType,Name, PSComputerName, Description,SID, Lockout, PasswordChangeable, PasswordExpires, PasswordRequired  | ConvertTo-Json > $hostname'\accounts.json'
 # Estructura de directorios de l carpeta home del usuario
 tree $HOME /f > $hostname/$Usuario'-tree.log'
 # Información de la BIOS
-Get-WmiObject Win32_Bios | ConvertTo-Json > > $hostname/'bios.json'
+Get-WmiObject Win32_Bios | ConvertTo-Json > $hostname/'bios.json'
