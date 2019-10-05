@@ -288,9 +288,12 @@ print("Created vagrant file: " + os.path.join('vagrant-files', 'vagrant-' + args
 # --------------------------------------------- SCRIPTS -----------------------------------------------
 scriptDir = os.path.join(currentDir, 'scripts', args.machine_name)
 for root, dirs, files in os.walk(os.path.join(corpDir, 'scripts',args.win_type), topdown=False):
-        for name in files:
-            print('Copy script: ' + name)
+    for name in files:
+        print('Copy script: ' + name)
+        try:
             copyFileAndCreateFolders(os.path.join(root, name),os.path.join(scriptDir,name))
+        except:
+            os.popen('cp ' + os.path.join(root, name) + ' ' + os.path.join(scriptDir,name))
 
 # --------------------------------------------- GIT IGNORE ---------------------------------------------
 copyFileAndCreateFolders(os.path.join(corpDir, 'templates', 'gitignore'), os.path.join(

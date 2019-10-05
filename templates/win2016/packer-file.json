@@ -45,6 +45,7 @@
         {
             "type": "windows-shell",
             "scripts": [
+                "scripts/<<MACHINE_NAME>>/copy-scripts.bat",
                 "scripts/<<MACHINE_NAME>>/unlimited-password-expiration.bat",
                 "scripts/<<MACHINE_NAME>>/enable-rdp.bat",
                 "scripts/<<MACHINE_NAME>>/uac-disable.bat",
@@ -55,9 +56,14 @@
             ]
         },
         {
+            "type": "file",
+            "source": "scripts/<<MACHINE_NAME>>/*",
+            "destination": "C:\\sysinternals\\scripts"
+        },
+        {
             "type": "windows-shell",
             "inline": [
-                "net user vagrant {{ user `password`}}"
+                "net user <<USR_NAME>> {{ user `password`}}"
             ]
         }
     ],
@@ -70,6 +76,7 @@
         "iso_checksum": "<<ISO_CHECKSUM>>",
         "local_iso_url": "file://<<ISO_PATH>>",
         "preseed": "<<MACHINE_NAME>>/*",
+        "password" : "<<USR_PSWD>>",
         "vagrantfile_template": "vagrant-files/vagrant-<<MACHINE_NAME>>.template",
         "version": "0",
         "vm_name": "<<MACHINE_NAME>>",
