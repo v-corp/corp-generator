@@ -15,3 +15,5 @@ Get-WmiObject Win32_Bios | ConvertTo-Json | Out-File -Encoding UTF8 $hostname/'b
 [System.Environment]::OSVersion.Version | ConvertTo-JSON | Out-File -Encoding UTF8 $hostname'\version.json'
 # Información del antivirus
 Get-WmiObject -Namespace "root\SecurityCenter2" -Query "Select * From  AntiVirusProduct" | ConvertTo-Json | Out-File -Encoding UTF8 $hostname'\net.json'
+# Programas instalados
+Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | ConvertTo-Json | Out-File -Encoding UTF8 $hostname'\programs.json'
