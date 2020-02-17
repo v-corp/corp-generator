@@ -20,6 +20,23 @@ corpDir = os.path.abspath(os.path.join(
 
 print('Current directory: ' + currentDir)
 print('Cache directory: ' + corpDir)
+
+def check_password_complexity(pswd):
+    mayus = 0
+    numbers = 0
+    symbols = 0
+    for char in pswd:
+        if char >= 'A' and char <= 'Z':
+            mayus += 1
+        elif char >= '0' and char <= '9':
+            numbers += 1
+        elif char < 'A' or (char > 'Z' and not (char >= 'a' and char <= 'z')):
+            symbols += 1
+    if not (mayus > 0 and numbers > 1 and symbols > 0):
+        raise Exception('Password must contain at least: 1 mayus, 2 numbers and 1 symbol')
+    return True
+
+
 def check_if_admin():
     if platform == 'win32':
         process = subprocess.Popen(
@@ -164,6 +181,10 @@ if args.clean_cache:
             os.rmdir(os.path.join(root, name))
     exit()
 
+if not check_password_complexity(args.password):
+    print('Password must contain at least: 1 mayus, 2 numbers and 1 symbol')
+    exit()
+
 # Write templates
 if not args.iso_md5:
     print('Calculating MD5 of ISO image...')
@@ -220,6 +241,8 @@ if not args.win_type:
     args.win_image = selectedImg
     args.win_type = get_win_type( windowsList[selectedImg - 1][1])
 
+
+args.win_image = args.win_image.replace(' ','-').replace('[<>\\/]','')
 
 # Select image using index or name
 try:

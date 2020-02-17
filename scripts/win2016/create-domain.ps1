@@ -39,7 +39,7 @@ if ((gwmi win32_computersystem).partofdomain -eq $false) {
         -CreateDnsDelegation:$false `
         -DatabasePath "C:\Windows\NTDS" `
         -DomainMode "Win2016" `
-        -DomainName "windomain.local" `
+        -DomainName $domain `
         -DomainNetbiosName "WINDOMAIN" `
         -ForestMode "Win2016" `
         -InstallDns:$true `
