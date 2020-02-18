@@ -13,6 +13,7 @@
             "iso_urls": [
                 "{{ user `local_iso_url` }}"
             ],
+            "format": "qcow2",
             "output_directory": "output-{{ user `vm_name` }}",
             "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
             "communicator": "winrm",
