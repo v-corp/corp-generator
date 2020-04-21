@@ -13,13 +13,14 @@
             "iso_urls": [
                 "{{ user `local_iso_url` }}"
             ],
+            "accelerator": "<<KVM>>",
             "format": "qcow2",
             "output_directory": "output-{{ user `vm_name` }}",
-            "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
+            "shutdown_command": "shutdown /s /t 5 /f /d p:4:1 /c \"Packer Shutdown\"",
             "communicator": "winrm",
             "winrm_username": "<<USR_NAME>>",
             "winrm_password": "<<USR_PSWD>>",
-            "winrm_timeout": "10000s",
+            "winrm_timeout": "2h",
             "boot_wait": "2s",
             "vm_name": "{{ user `vm_name` }}",
             "qemuargs": [
@@ -69,7 +70,7 @@
         "iso_checksum_type": "md5",
         "iso_checksum": "<<ISO_CHECKSUM>>",
         "local_iso_url": "file://<<ISO_PATH>>",
-        "version": "1",
+        "version": "<<VERSION>>",
         "vm_name": "<<MACHINE_NAME>>",
         "vagrantfile_template": "vagrant-files/vagrant-<<MACHINE_NAME>>.template",
         "floppy_files_list": "<<VIRTIO_PATH>>/viostor/w7/amd64/*,<<VIRTIO_PATH>>/NetKVM/w7/amd64/*,answer/<<MACHINE_NAME>>/Autounattend.xml",

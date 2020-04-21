@@ -13,13 +13,14 @@ import re
 import wget
 import hashlib
 from sys import platform
+import json
 
 currentDir = os.getcwd()
 corpDir = os.path.abspath(os.path.join(
     os.path.dirname(os.path.realpath(__file__)), '..'))
 
-print('Current directory: ' + currentDir)
-print('Cache directory: ' + corpDir)
+
+# Check current dir for other versions
 
 def check_password_complexity(pswd):
     mayus = 0
@@ -120,7 +121,7 @@ def md5(fname):
 
 
 def replaceArgumentsFunction(content, arguments):
-    return content.replace('<<USR_NAME>>', arguments.username).replace('<<USR_PSWD>>', arguments.password).replace('<<VIRTIO>>', arguments.virtio).replace('<<WIN_IMG>>', str(arguments.win_image)).replace('<<MACHINE_NAME>>', arguments.machine_name).replace('<<ISO_PATH>>', arguments.iso_path).replace('<<IMG_SELECTOR>>', arguments.win_image_type).replace('<<ISO_CHECKSUM>>', arguments.iso_md5).replace('<<VIRTIO_PATH>>',arguments.virtio_path).replace('<<CORP_COMMAND>>', ' '.join(sys.argv).replace('\\','/'))
+    return content.replace('<<USR_NAME>>', arguments.username).replace('<<VERSION>>', arguments.version).replace('<<KVM>>', arguments.kvm).replace('<<USR_PSWD>>', arguments.password).replace('<<VIRTIO>>', arguments.virtio).replace('<<WIN_IMG>>', str(arguments.win_image)).replace('<<MACHINE_NAME>>', arguments.machine_name).replace('<<ISO_PATH>>', arguments.iso_path).replace('<<IMG_SELECTOR>>', arguments.win_image_type).replace('<<ISO_CHECKSUM>>', arguments.iso_md5).replace('<<VIRTIO_PATH>>',arguments.virtio_path).replace('<<CORP_COMMAND>>', ' '.join(sys.argv).replace('\\','/'))
 
 
 def copyFileAndCreateFolders(origin, destino):
@@ -171,7 +172,16 @@ parser.add_argument('--win-image', dest='win_image', action='store', default=1,
                     help='select windows image to install. It can be selected using a number (image index inside install.wim) or the image name. Ej: 1, 2, 3, 4, \'Windows 10 Home\',\'Windows 10 Pro\',\'Windows Server 2016 SERVERSTANDARD\'')
 parser.add_argument('--clean-cache', dest='clean_cache', action='store_true', default=False,
                     help='Clean the cache folder (It stores virtio versions and install.WIM files).')
+parser.add_argument('--no-pswd', dest='no_pswd', action='store_true', default=False,
+                    help='Allow the usage of simple passwords.')
+parser.add_argument('--kvm', dest='kvm', action='store_true', default=False,
+                    help='Allow running QEMU using KVM.')
+parser.add_argument('--version', dest='version', action='store', default='0',
+                    help='Version control of the generated templates.')
 args = parser.parse_args()
+
+print('Current directory: ' + currentDir)
+print('Cache directory: ' + corpDir)
 
 if args.clean_cache:
     for root, dirs, files in os.walk(os.path.join(corpDir, 'cache'), topdown=False):
@@ -181,7 +191,23 @@ if args.clean_cache:
             os.rmdir(os.path.join(root, name))
     exit()
 
-if not check_password_complexity(args.password):
+if not args.iso_path:
+    parser.print_help()
+    exit()
+
+if args.version == "0":
+    packer_file_path = os.path.join(currentDir, 'packer-' + args.machine_name + '.json')
+    if os.path.isfile(packer_file_path):
+        print("Replacing original configuration...")
+        with open(packer_file_path, 'r') as json_data:
+            data = json.loads(json_data.read())
+            if "variables" in data and "version" in data["variables"]:
+                new_version = int(data["variables"]["version"]) + 1
+                print("Updating version from " + str(data["variables"]["version"]) + " to " + str(new_version))
+                args.version = str(new_version)
+    
+
+if args.no_pswd == False and not check_password_complexity(args.password):
     print('Password must contain at least: 1 mayus, 2 numbers and 1 symbol')
     exit()
 
@@ -231,19 +257,25 @@ if not args.win_type:
         p_status = process.wait()
         process.terminate()
     windowsList = get_windows_list(output)
-    print('Select a Windows Image:')
     selectedImg = ''
-    for img in windowsList:
-        print(img[0] + ' - ' + img[1])
-
-    selectedImg = int(input())
+    if len(windowsList) > 1 :
+        print('Select a Windows Image:')
+        for img in windowsList:
+            print(img[0] + ' - ' + img[1])
+        selectedImg = int(input())
+    else:
+        selectedImg = 1
     print('WIN_IMAGE=' + windowsList[selectedImg - 1][1])
     args.win_image = selectedImg
     args.win_type = get_win_type( windowsList[selectedImg - 1][1])
 
+if not isinstance(args.win_image, int):
+    args.win_image = args.win_image.replace(' ','-').replace('[<>\\/]','')
 
-args.win_image = args.win_image.replace(' ','-').replace('[<>\\/]','')
-
+if args.kvm == True:
+    args.kvm = "kvm"
+else:
+    args.kvm = "none"
 # Select image using index or name
 try:
     # https://docs.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-setup-imageinstall-osimage-installfrom-metadata-key
