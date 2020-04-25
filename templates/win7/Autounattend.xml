@@ -59,13 +59,13 @@
         </component>
         <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <SetupUILanguage>
-                <UILanguage>en-EN</UILanguage>
+                <UILanguage><<LANG_FALL>></UILanguage>
             </SetupUILanguage>
-            <InputLocale>es-ES</InputLocale>
-            <SystemLocale>es-ES</SystemLocale>
-            <UILanguage>es-ES</UILanguage>
-            <UILanguageFallback>en-EN</UILanguageFallback>
-            <UserLocale>es-ES</UserLocale>
+            <InputLocale><<LANG>></InputLocale>
+            <SystemLocale><<LANG>></SystemLocale>
+            <UILanguage><<LANG>></UILanguage>
+            <UILanguageFallback><<LANG_FALL>></UILanguageFallback>
+            <UserLocale><<LANG>></UserLocale>
         </component>
         <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DriverPaths>

@@ -1,6 +1,9 @@
 # Cancamusa
 
+
+## Generate Windows Images and Vagrant Boxes
 ISO: https://software-download.microsoft.com/download/pr/Windows_Server_2016_Datacenter_EVAL_en-us_14393_refresh.ISO
+ISO: http://download.microsoft.com/download/7/6/9/769D6905-3BC7-4CF0-B3BD-785EC88767AF/14393.0.161119-1705.RS1_REFRESH_SERVER_EVAL_X64FRE_ES-ES.ISO
 ISO: https://software-download.microsoft.com/download/pr/18363.418.191007-0143.19h2_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_es-es.iso
 
 ```
@@ -117,4 +120,77 @@ Copy script: install-winrm.cmd
 Copy script: install-rol.ps1
 Copy script: uac-disable.bat
 Created .gitignore
+```
+
+
+## Install and fill a domain
+
+`python3 generate_domain.py domain.csv --out init_domain.ps1`
+
+```powershell
+param (
+    [String] $ip,
+    [String] $password = "cancamusa",
+    [String] $dns1 = "8.8.8.8",
+    [String] $dns2 = "8.8.4.4",
+    [String] $domainNetBios = "corp"
+)
+if ((gwmi win32_computersystem).partofdomain -eq $true) {
+    Exit
+}
+
+$domain = "mydomain.com"
+#Todavia no está en dominio
+Write-Host 'Installing RSAT tools'
+Import-Module ServerManager
+Add-WindowsFeature RSAT-AD-PowerShell,RSAT-AD-AdminCenter
+
+# Eliminar política de contraseña robusta
+secedit /export /cfg C:\secpol.cfg
+(gc C:\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0") | Out-File C:\secpol.cfg
+secedit /configure /db C:\Windows\security\local.sdb /cfg C:\secpol.cfg /areas SECURITYPOLICY
+rm -force C:\secpol.cfg -confirm:$false
+
+$PlainPassword = $password
+$SecurePassword = $PlainPassword | ConvertTo-SecureString -AsPlainText -Force
+
+
+# Instalar Forest y convertir la maquina en un DC
+Install-WindowsFeature AD-domain-services
+Import-Module ADDSDeployment
+Install-ADDSForest -SafeModeAdministratorPassword $SecurePassword `
+    -CreateDnsDelegation:$false `
+    -DatabasePath "C:\Windows\NTDS" `
+    -DomainMode "7" `
+    -DomainName $domain `
+    -DomainNetbiosName $domainNetBios `
+    -ForestMode "7" `
+    -InstallDns:$true `
+    -LogPath "C:\Windows\NTDS" `
+    -NoRebootOnCompletion:$true `
+    -SysvolPath "C:\Windows\SYSVOL" `
+    -Force:$true
+
+$newDNSServers = $dns1, $dns2
+$adapters = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object { $_.DefaultIPGateway -ne $null -and $_.DefaultIPGateway[0].StartsWith($subnet) }
+if ($adapters) {
+    Write-Host Setting DNS
+    $adapters | ForEach-Object {$_.SetDNSServerSearchOrder($newDNSServers)}
+}#OrganizationalUnits:
+New-ADOrganizationalUnit -name "Computers"
+New-ADOrganizationalUnit -name "Domain Controllers"
+#...
+#...
+
+#Groups:
+New-ADGroup -Name "Users" -SamAccountName "Users" -GroupCategory Security -GroupScope Global -DisplayName "Users" -Path "DC=MYDOMAIN,DC=COM" -Description ""
+#...
+#...
+
+#Users:
+New-ADUser -Name "Administrador" -GivenName "" -Surname "" -SamAccountName "Administrador" -Enabled $True -ChangePasswordAtLogon $True -DisplayName "Administrador" -Department "" -Path "CN=Users,DC=MYDOMAIN,DC=COM" -Description "ADMIN" -AccountPassword (convertto-securestring "_nb3%z7vct" -AsPlainText -Force)
+Add-ADGroupMember -Identity "CN=Propietarios del creador de directivas de grupo,CN=Users,DC=MYDOMAIN,DC=COM" -Member "CN=Administrador,CN=Users,DC=MYDOMAIN,DC=COM"
+#...
+#...
+
 ```

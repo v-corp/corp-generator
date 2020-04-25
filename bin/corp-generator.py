@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
-# Corp Country VM
-
-# Corp Country is made of villagers
 import argparse
 import subprocess
 import sys
 import os
-import subprocess
 import time
 import re
 import wget
@@ -37,6 +33,17 @@ def check_password_complexity(pswd):
         raise Exception('Password must contain at least: 1 mayus, 2 numbers and 1 symbol')
     return True
 
+def translate_lang(lang):
+    if lang == "en":
+        return "en-EN"
+    if lang == "es":
+        return "es-ES"
+    return "en-EN"
+
+def valid_machine_name(name):
+    if len(name) < 2 or len(name) > 15:
+        return False
+    return True
 
 def check_if_admin():
     if platform == 'win32':
@@ -121,7 +128,7 @@ def md5(fname):
 
 
 def replaceArgumentsFunction(content, arguments):
-    return content.replace('<<USR_NAME>>', arguments.username).replace('<<VERSION>>', arguments.version).replace('<<KVM>>', arguments.kvm).replace('<<USR_PSWD>>', arguments.password).replace('<<VIRTIO>>', arguments.virtio).replace('<<WIN_IMG>>', str(arguments.win_image)).replace('<<MACHINE_NAME>>', arguments.machine_name).replace('<<ISO_PATH>>', arguments.iso_path).replace('<<IMG_SELECTOR>>', arguments.win_image_type).replace('<<ISO_CHECKSUM>>', arguments.iso_md5).replace('<<VIRTIO_PATH>>',arguments.virtio_path).replace('<<CORP_COMMAND>>', ' '.join(sys.argv).replace('\\','/'))
+    return content.replace('<<LANG>>', translate_lang(arguments.lang)).replace('<<LANG_FALL>>', translate_lang(arguments.lang_fall)).replace('<<USR_NAME>>', arguments.username).replace('<<VERSION>>', arguments.version).replace('<<KVM>>', arguments.kvm).replace('<<USR_PSWD>>', arguments.password).replace('<<VIRTIO>>', arguments.virtio).replace('<<WIN_IMG>>', str(arguments.win_image)).replace('<<MACHINE_NAME>>', arguments.machine_name).replace('<<ISO_PATH>>', arguments.iso_path).replace('<<IMG_SELECTOR>>', arguments.win_image_type).replace('<<ISO_CHECKSUM>>', arguments.iso_md5).replace('<<VIRTIO_PATH>>',arguments.virtio_path).replace('<<CORP_COMMAND>>', ' '.join(sys.argv).replace('\\','/'))
 
 
 def copyFileAndCreateFolders(origin, destino):
@@ -178,6 +185,10 @@ parser.add_argument('--kvm', dest='kvm', action='store_true', default=False,
                     help='Allow running QEMU using KVM.')
 parser.add_argument('--version', dest='version', action='store', default='0',
                     help='Version control of the generated templates.')
+parser.add_argument('--lang', dest='lang', action='store', default='es',
+                    help='Default installation language.')
+parser.add_argument('--lang-fall', dest='lang_fall', action='store', default='en',
+                    help='Fallback installation language.')
 args = parser.parse_args()
 
 print('Current directory: ' + currentDir)
@@ -209,6 +220,10 @@ if args.version == "0":
 
 if args.no_pswd == False and not check_password_complexity(args.password):
     print('Password must contain at least: 1 mayus, 2 numbers and 1 symbol')
+    exit()
+
+if not valid_machine_name(args.machine_name):
+    print('Machine name must be between 2 - 15 characters long.')
     exit()
 
 # Write templates

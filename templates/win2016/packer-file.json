@@ -1,5 +1,4 @@
 {
-    "_comment": "Build with `packer build <<MACHINE_NAME>>.json`",
     "_comment": "<<CORP_COMMAND>>",
     "builders": [
         {
@@ -13,14 +12,15 @@
             "iso_urls": [
                 "{{ user `local_iso_url` }}"
             ],
+            "accelerator": "<<KVM>>",
             "format": "qcow2",
             "output_directory": "output-{{ user `vm_name` }}",
             "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
             "communicator": "winrm",
             "winrm_username": "<<USR_NAME>>",
             "winrm_password": "<<USR_PSWD>>",
-            "winrm_timeout": "10000s",
-            "boot_wait": "2s",
+            "winrm_timeout": "2h",
+            "boot_wait": "4s",
             "vm_name": "{{ user `vm_name` }}",
             "qemuargs": [
                 [
@@ -36,13 +36,19 @@
     ],
     "post-processors": [
         {
-            "keep_input_artifact": true,
+            "keep_input_artifact": false,
             "output": "box/{{.Provider}}/{{user `vm_name`}}-{{user `version`}}.box",
             "type": "vagrant",
             "vagrantfile_template": "{{ user `vagrantfile_template` }}"
         }
     ],
     "provisioners": [
+        {
+            "type": "powershell",
+            "scripts": [
+                "scripts/<<MACHINE_NAME>>/password-complexity.ps1"
+            ]
+        },
         {
             "type": "windows-shell",
             "scripts": [
@@ -52,14 +58,14 @@
                 "scripts/<<MACHINE_NAME>>/uac-disable.bat",
                 "scripts/<<MACHINE_NAME>>/disablewinupdate.bat",
                 "scripts/<<MACHINE_NAME>>/disable-hibernate.bat",
-                "scripts/<<MACHINE_NAME>>/firewall-open-ping.bat",
-                "scripts/<<MACHINE_NAME>>/firewall-open-rdp.bat"
+                "scripts/<<MACHINE_NAME>>/disable-firewall.bat"
             ]
         },
         {
             "type": "file",
-            "source": "scripts/<<MACHINE_NAME>>/*",
-            "destination": "C:\\sysinternals\\scripts"
+            "source": "scripts/<<MACHINE_NAME>>",
+            "destination": "C:\\sysinternals\\scripts",
+            "direction": "upload"
         },
         {
             "type": "windows-shell",
@@ -79,7 +85,7 @@
         "preseed": "<<MACHINE_NAME>>/*",
         "password": "<<USR_PSWD>>",
         "vagrantfile_template": "vagrant-files/vagrant-<<MACHINE_NAME>>.template",
-        "version": "0",
+        "version": "<<VERSION>>",
         "vm_name": "<<MACHINE_NAME>>",
         "floppy_files_list": "<<VIRTIO_PATH>>/viostor/2k16/amd64/*,<<VIRTIO_PATH>>/NetKVM/2k16/amd64/*,answer/<<MACHINE_NAME>>/*,scripts/<<MACHINE_NAME>>/enable-winrm.ps1,scripts/<<MACHINE_NAME>>/disable-winrm.ps1,scripts/<<MACHINE_NAME>>/fixnetwork.ps1"
     }

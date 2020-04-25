@@ -1,113 +1,87 @@
 {
+    "_comment": "<<CORP_COMMAND>>",
     "builders": [
-      {
-        "type": "qemu",
-        "vm_name": "windows_10",
-        
-        "iso_url": "{{user `iso_url`}}",
-        "iso_checksum_type": "{{user `iso_checksum_type`}}",
-        "iso_checksum": "{{user `iso_checksum`}}",
-        "headless": "{{ user `headless` }}",
-        "boot_wait": "6m",
-        "boot_command": "",
-        "communicator": "winrm",
-        "winrm_username": "<<USR_NAME>>",
-        "winrm_password": "<<USR_PSWD>>",
-        "winrm_timeout": "4h",
-        "shutdown_timeout": "2h",
-        "shutdown_command": "a:/sysprep.bat",
-        "accelerator": "kvm",
-        "format": "qcow2",
-        "disk_size": "{{user `disk_size`}}",
-        "output_directory": "{{ user `packer_build_dir`}}",
-        "qemuargs": [
-          [
-            "-m",
-            "2048"
-          ],
-          [
-            "-smp",
-            "2"
-          ],
-          [
-            "-drive",
-            "file={{ user `virtio_win_iso` }},media=cdrom,index=3"
-          ],
-          [
-            "-drive",
-            "file={{ user `packer_build_dir`}}/{{ .Name }},if=virtio,cache=writeback,discard=ignore,format=qcow2,index=1"
-          ]
-        ],
-        "floppy_files": [
-          "{{user `autounattend_virtio`}}",
-          "./floppy/WindowsPowershell.lnk",
-          "./floppy/PinTo10.exe",
-          "./scripts/fixnetwork.ps1",
-          "./scripts/rearm-windows.ps1",
-          "./scripts/disable-screensaver.ps1",
-          "./scripts/disable-winrm.ps1",
-          "./scripts/enable-winrm.ps1",
-          "./scripts/microsoft-updates.bat",
-          "./scripts/win-updates.ps1",
-          "./scripts/unattend.xml",
-          "./scripts/sysprep.bat"
-        ]
-      }
-    ],
-    "provisioners": [
-      {
-        "type": "windows-shell",
-        "remote_path": "/tmp/script.bat",
-        "execute_command": "{{ .Vars }} cmd /c \"{{ .Path }}\"",
-        "scripts": [
-          "./scripts/vm-guest-tools.bat",
-          "./scripts/enable-rdp.bat"
-        ]
-      },
-      {
-        "type": "powershell",
-        "scripts": [
-          "./scripts/debloat-windows.ps1"
-        ]
-      },
-      {
-        "type": "windows-restart"
-      },
-      {
-        "type": "powershell",
-        "scripts": [
-          "./scripts/set-powerplan.ps1",
-          "./scripts/docker/disable-windows-defender.ps1"
-        ]
-      },
-      {
-        "type": "windows-shell",
-        "remote_path": "/tmp/script.bat",
-        "execute_command": "{{ .Vars }} cmd /c \"{{ .Path }}\"",
-        "scripts": [
-          "./scripts/pin-powershell.bat",
-          "./scripts/compile-dotnet-assemblies.bat",
-          "./scripts/set-winrm-automatic.bat",
-          "./scripts/dis-updates.bat"
-        ]
-      }
+        {
+            "type": "qemu",
+            "disk_size": "{{ user `disk_size` }}",
+            "floppy_files": "{{ user `floppy_files_list` }}",
+            "headless": "{{ user `headless` }}",
+            "http_directory": "http",
+            "iso_checksum": "{{ user `iso_checksum` }}",
+            "iso_checksum_type": "{{ user `iso_checksum_type` }}",
+            "iso_urls": [
+                "{{ user `iso_url` }}"
+            ],
+            "accelerator": "<<KVM>>",
+            "format": "qcow2",
+            "output_directory": "/var/lib/vz/images/output-{{ user `vm_name` }}",
+            "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
+            "communicator": "winrm",
+            "winrm_username": "<<USR_NAME>>",
+            "winrm_password": "<<USR_PSWD>>",
+            "winrm_timeout": "2h",
+            "boot_wait": "4s",
+            "vm_name": "{{ user `vm_name` }}",
+            "qemuargs": [
+                [
+                    "-m",
+                    "{{ user `memory` }}"
+                ],
+                [
+                    "-smp",
+                    "cpus={{ user `cpus`}}"
+                ]
+            ]
+        }
     ],
     "post-processors": [
-      {
-        "type": "vagrant",
-        "keep_input_artifact": false,
-        "output": "windows_10_{{.Provider}}.box",
-        "vagrantfile_template": "vagrantfile-windows_10.template"
-      }
+        {
+            "keep_input_artifact": true,
+            "output": "box/{{.Provider}}/{{user `vm_name`}}-{{user `version`}}.box",
+            "type": "vagrant",
+            "vagrantfile_template": "{{ user `vagrantfile_template` }}"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "powershell",
+            "scripts": [
+                "scripts/<<MACHINE_NAME>>/password-complexity.ps1"
+            ]
+        },
+        {
+            "type": "windows-shell",
+            "scripts": [
+                "scripts/<<MACHINE_NAME>>/copy-scripts.bat",
+                "scripts/unlimited-password-expiration.bat",
+                "scripts/enable-rdp.bat",
+                "scripts/uac-disable.bat",
+                "scripts/disablewinupdate.bat",
+                "scripts/disable-hibernate.bat",
+                "scripts/<<MACHINE_NAME>>/firewall-open-ping.bat",
+                "scripts/<<MACHINE_NAME>>/firewall-open-rdp.bat"
+                
+            ]
+        },
+        {
+            "type": "windows-shell",
+            "inline": [
+                "net user <<USR_NAME>> <<USR_PSWD>>"
+            ]
+        }
     ],
     "variables": {
-      "iso_checksum": "9ef81b6a101afd57b2dbfa44d5c8f7bc94ff45b51b82c5a1f9267ce2e63e9f53",
-      "iso_checksum_type": "sha256",
-      "iso_url": "https://software-download.microsoft.com/download/pr/18363.418.191007-0143.19h2_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso",
-      "autounattend": "./answer_files/10/Autounattend.xml",
-      "disk_size": "61440",
-      "virtio_win_iso": "./virtio-win.iso",
-      "autounattend_virtio": "./answer_files/10_virtio/Autounattend.xml",
-      "packer_build_dir": "./win10"
+        "disk_size": "65536",
+        "cpus": "2",
+        "memory": "4048M",
+        "headless": "false",
+        "iso_checksum_type": "md5",
+        "iso_checksum": "<<ISO_CHECKSUM>>",
+        "local_iso_url": "file://<<ISO_PATH>>",
+        "preseed": "<<MACHINE_NAME>>/*",
+        "vagrantfile_template": "vagrant-files/vagrant-<<MACHINE_NAME>>.template",
+        "version": "<<VERSION>>",
+        "vm_name": "<<MACHINE_NAME>>",
+        "floppy_files_list": "<<VIRTIO_PATH>>/viostor/w10/amd64/*,<<VIRTIO_PATH>>/NetKVM/w10/amd64/*,answer/<<MACHINE_NAME>>/*,scripts/<<MACHINE_NAME>>/enable-winrm.ps1,scripts/<<MACHINE_NAME>>/disable-winrm.ps1,scripts/<<MACHINE_NAME>>/fixnetwork.ps1"
     }
-  }
+}
