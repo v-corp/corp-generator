@@ -10,6 +10,45 @@ import wget
 import hashlib
 from sys import platform
 import json
+import random
+
+program_description = """
+Create a complete Windows based security LAB with malware sandbox ofuscation maximized using KVM.\n 
+7zip and DSIM are required in order to autodetect windows image types if they are not provided.
+"""
+parser = argparse.ArgumentParser(description=program_description)
+
+parser.add_argument('--iso', dest='iso_path', action='store',
+                    help='selects the iso with which generate the villager template')
+parser.add_argument('--iso-md5', dest='iso_md5', action='store',
+                    help='Checksum for the ISO. If not provided will be autocalculated')
+parser.add_argument('--name', dest='machine_name', action='store', default='windows-corp',
+                    help='sets the name for this machine')
+parser.add_argument('--username', dest='username', action='store', default='vagrant',
+                    help='sets the name of the user in this machine')
+parser.add_argument('--password', dest='password', action='store', default='vagrant',
+                    help='sets the password for the user in this machine')
+parser.add_argument('--virtio', dest='virtio', action='store', default='0.1.172',
+                    help='version of the virtio drivers to use. Set to NONE to skip this step.')
+parser.add_argument('--win-type', dest='win_type', action='store',
+                    help='version of windows: win10, win2016, win7, win2008, win2012, win2019.If it\'s not provided, then DSIM will be used to autodetect the version')
+parser.add_argument('--win-image', dest='win_image', action='store', default=1,
+                    help='select windows image to install. It can be selected using a number (image index inside install.wim) or the image name. Ej: 1, 2, 3, 4, \'Windows 10 Home\',\'Windows 10 Pro\',\'Windows Server 2016 SERVERSTANDARD\'')
+parser.add_argument('--clean-cache', dest='clean_cache', action='store_true', default=False,
+                    help='Clean the cache folder (It stores virtio versions and install.WIM files).')
+parser.add_argument('--no-pswd', dest='no_pswd', action='store_true', default=False,
+                    help='Allow the usage of simple passwords.')
+parser.add_argument('--kvm', dest='kvm', action='store_true', default=False,
+                    help='Allow running QEMU using KVM.')
+parser.add_argument('--version', dest='version', action='store', default='0',
+                    help='Version control of the generated templates.')
+parser.add_argument('--lang', dest='lang', action='store', default='es',
+                    help='Default installation language.')
+parser.add_argument('--lang-fall', dest='lang_fall', action='store', default='en',
+                    help='Fallback installation language.')
+args = parser.parse_args()
+
+
 
 currentDir = os.getcwd()
 corpDir = os.path.abspath(os.path.join(
@@ -34,9 +73,9 @@ def check_password_complexity(pswd):
     return True
 
 def translate_lang(lang):
-    if lang == "en":
+    if lang.lower() == "en":
         return "en-EN"
-    if lang == "es":
+    if lang.lower() == "es":
         return "es-ES"
     return "en-EN"
 
@@ -44,6 +83,16 @@ def valid_machine_name(name):
     if len(name) < 2 or len(name) > 15:
         return False
     return True
+
+def rand_mac():
+    return "%02x:%02x:%02x:%02x:%02x:%02x" % (
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255)
+        )
 
 def check_if_admin():
     if platform == 'win32':
@@ -131,6 +180,8 @@ def replaceArgumentsFunction(content, arguments):
     return content.replace('<<LANG>>', translate_lang(arguments.lang)).replace('<<LANG_FALL>>', translate_lang(arguments.lang_fall)).replace('<<USR_NAME>>', arguments.username).replace('<<VERSION>>', arguments.version).replace('<<KVM>>', arguments.kvm).replace('<<USR_PSWD>>', arguments.password).replace('<<VIRTIO>>', arguments.virtio).replace('<<WIN_IMG>>', str(arguments.win_image)).replace('<<MACHINE_NAME>>', arguments.machine_name).replace('<<ISO_PATH>>', arguments.iso_path).replace('<<IMG_SELECTOR>>', arguments.win_image_type).replace('<<ISO_CHECKSUM>>', arguments.iso_md5).replace('<<VIRTIO_PATH>>',arguments.virtio_path).replace('<<CORP_COMMAND>>', ' '.join(sys.argv).replace('\\','/'))
 
 
+
+
 def copyFileAndCreateFolders(origin, destino):
     if os.path.isfile(origin):
         with open(origin, 'r') as origin_file:
@@ -155,41 +206,6 @@ def cleanVirtioFromPDB(virtio_path):
             if(name.endswith('.pdb')):
                 os.remove(os.path.join(root, name))
 
-program_description = """
-Create a complete Windows based security LAB with malware sandbox ofuscation maximized using KVM.\n 
-7zip and DSIM are required in order to autodetect windows image types if they are not provided.
-"""
-parser = argparse.ArgumentParser(description=program_description)
-
-parser.add_argument('--iso', dest='iso_path', action='store', #default='A:\TFM\plantillas_packer\packer_cache\efb043a754a51177aaac7881fbe9234c06fe97c8.iso',
-                    help='selects the iso with which generate the villager template')
-parser.add_argument('--iso-md5', dest='iso_md5', action='store',
-                    help='Checksum for the ISO. If not provided will be autocalculated')
-parser.add_argument('--name', dest='machine_name', action='store', default='windows-corp',
-                    help='sets the name for this machine')
-parser.add_argument('--username', dest='username', action='store', default='vagrant',
-                    help='sets the name of the user in this machine')
-parser.add_argument('--password', dest='password', action='store', default='vagrant',
-                    help='sets the password for the user in this machine')
-parser.add_argument('--virtio', dest='virtio', action='store', default='0.1.172',
-                    help='version of the virtio drivers to use. Set to NONE to skip this step.')
-parser.add_argument('--win-type', dest='win_type', action='store',
-                    help='version of windows: win10, win2016, win7, win2008, win2012, win2019.If it\'s not provided, then DSIM will be used to autodetect the version')
-parser.add_argument('--win-image', dest='win_image', action='store', default=1,
-                    help='select windows image to install. It can be selected using a number (image index inside install.wim) or the image name. Ej: 1, 2, 3, 4, \'Windows 10 Home\',\'Windows 10 Pro\',\'Windows Server 2016 SERVERSTANDARD\'')
-parser.add_argument('--clean-cache', dest='clean_cache', action='store_true', default=False,
-                    help='Clean the cache folder (It stores virtio versions and install.WIM files).')
-parser.add_argument('--no-pswd', dest='no_pswd', action='store_true', default=False,
-                    help='Allow the usage of simple passwords.')
-parser.add_argument('--kvm', dest='kvm', action='store_true', default=False,
-                    help='Allow running QEMU using KVM.')
-parser.add_argument('--version', dest='version', action='store', default='0',
-                    help='Version control of the generated templates.')
-parser.add_argument('--lang', dest='lang', action='store', default='es',
-                    help='Default installation language.')
-parser.add_argument('--lang-fall', dest='lang_fall', action='store', default='en',
-                    help='Fallback installation language.')
-args = parser.parse_args()
 
 print('Current directory: ' + currentDir)
 print('Cache directory: ' + corpDir)
@@ -342,6 +358,7 @@ else:
 # All paths must be changed to be printed in JSON files
 args.iso_path = args.iso_path.replace('\\','/')
 
+
 # --------------------------------------------- Templates ---------------------------------------------
 copyFileCreateFoldersAndReplace(os.path.join(corpDir, 'templates', args.win_type, 'Autounattend.xml'), os.path.join(
     currentDir, 'answer', args.machine_name, 'Autounattend.xml'), args)
@@ -369,4 +386,3 @@ for root, dirs, files in os.walk(os.path.join(corpDir, 'scripts',args.win_type),
 copyFileAndCreateFolders(os.path.join(corpDir, 'templates', 'gitignore'), os.path.join(
     currentDir, '.gitignore'))
 print("Created .gitignore")
-

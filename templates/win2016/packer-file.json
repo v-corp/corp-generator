@@ -17,8 +17,8 @@
             "output_directory": "output-{{ user `vm_name` }}",
             "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
             "communicator": "winrm",
-            "winrm_username": "<<USR_NAME>>",
-            "winrm_password": "<<USR_PSWD>>",
+            "winrm_username": "{{ user `username` }}",
+            "winrm_password": "{{ user `password` }}",
             "winrm_timeout": "2h",
             "boot_wait": "4s",
             "vm_name": "{{ user `vm_name` }}",
@@ -70,7 +70,7 @@
         {
             "type": "windows-shell",
             "inline": [
-                "net user <<USR_NAME>> {{ user `password`}}"
+                "net user {{ user `username`}} {{ user `password`}}"
             ]
         }
     ],
@@ -78,15 +78,17 @@
         "disk_size": "65536",
         "cpus": "2",
         "memory": "4048M",
-        "headless": "false",
+        "headless": "true",
         "iso_checksum_type": "md5",
         "iso_checksum": "<<ISO_CHECKSUM>>",
         "local_iso_url": "file://<<ISO_PATH>>",
+        "iso_path" : "<<ISO_PATH>>",
         "preseed": "<<MACHINE_NAME>>/*",
+        "username" : "<<USR_NAME>>",
         "password": "<<USR_PSWD>>",
         "vagrantfile_template": "vagrant-files/vagrant-<<MACHINE_NAME>>.template",
         "version": "<<VERSION>>",
         "vm_name": "<<MACHINE_NAME>>",
-        "floppy_files_list": "<<VIRTIO_PATH>>/viostor/2k16/amd64/*,<<VIRTIO_PATH>>/NetKVM/2k16/amd64/*,answer/<<MACHINE_NAME>>/*,scripts/<<MACHINE_NAME>>/enable-winrm.ps1,scripts/<<MACHINE_NAME>>/disable-winrm.ps1,scripts/<<MACHINE_NAME>>/fixnetwork.ps1"
+        "floppy_files_list": "<<VIRTIO_PATH>>/viostor/2k16/amd64/*,<<VIRTIO_PATH>>/vioscsi/2k16/amd64/*,<<VIRTIO_PATH>>/NetKVM/2k16/amd64/*,answer/<<MACHINE_NAME>>/*,scripts/<<MACHINE_NAME>>/enable-winrm.ps1,scripts/<<MACHINE_NAME>>/disable-winrm.ps1,scripts/<<MACHINE_NAME>>/fixnetwork.ps1"
     }
 }

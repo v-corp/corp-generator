@@ -1,5 +1,8 @@
 # Cancamusa
 
+```
+apt-get install wimtools
+```
 
 ## Generate Windows Images and Vagrant Boxes
 ISO: https://software-download.microsoft.com/download/pr/Windows_Server_2016_Datacenter_EVAL_en-us_14393_refresh.ISO
@@ -193,4 +196,60 @@ Add-ADGroupMember -Identity "CN=Propietarios del creador de directivas de grupo,
 #...
 #...
 
+```
+
+
+
+### Problems with vagrant and proxmox
+
+Use DEB packet from: [https://www.vagrantup.com/downloads.html](https://www.vagrantup.com/downloads.html)
+
+apt install ./vagrant_2.2.7_x86_64.deb
+
+```
+vagrant plugin install vagrant-libvirt
+Installing the 'vagrant-libvirt' plugin. This can take a few minutes...
+Fetching: formatador-0.2.5.gem (100%)
+Fetching: excon-0.73.0.gem (100%)
+Fetching: fog-core-1.43.0.gem (100%)
+Fetching: mini_portile2-2.4.0.gem (100%)
+Fetching: nokogiri-1.10.9.gem (100%)
+Building native extensions.  This could take a while...
+Fetching: fog-json-1.2.0.gem (100%)
+Fetching: fog-xml-0.1.3.gem (100%)
+Fetching: ruby-libvirt-0.7.1.gem (100%)
+Building native extensions.  This could take a while...
+Fetching: fog-libvirt-0.7.0.gem (100%)
+Fetching: vagrant-libvirt-0.0.45.gem (100%)
+Installed the plugin 'vagrant-libvirt (0.0.45)'!
+```
+vagrant up --provider libvirt
+
+
+
+### BIOS clonning
+
+Using the "--bios" option we can now build a custom SeaBIOS that emulates a real one with data from WMI:
+
+```json
+}
+    ...
+    "Manufacturer":  "American Megatrends Inc.",
+    "Name":  "5.6.5",
+    "OtherTargetOS":  null,
+    "PrimaryBIOS":  true,
+    "ReleaseDate":  "20150901000000.000000+000",
+    "SerialNumber":  "To be filled by O.E.M.",
+    "SMBIOSBIOSVersion":  "5.6.5",
+    "SMBIOSMajorVersion":  2,
+    "SMBIOSMinorVersion":  8,
+    "SMBIOSPresent":  true,
+    "SoftwareElementID":  "5.6.5",
+    "SoftwareElementState":  3,
+    "Status":  "OK",
+    "SystemBiosMajorVersion":  5,
+    "SystemBiosMinorVersion":  6,
+    "TargetOperatingSystem":  0,
+    "Version":  "ALASKA - 1072009"
+}
 ```
